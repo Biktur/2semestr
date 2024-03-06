@@ -32,7 +32,7 @@ long long int binary_search(long long int array[], long long int array_length, l
   return -1;
 }
 
-void quadratic_sum(long long int array[], long long int array_length, long long int sum_to_find) { // Прямой перебор для находения элементов с заданной суммой
+long long int quadratic_sum(long long int array[], long long int array_length, long long int sum_to_find) { // Прямой перебор для находения элементов с заданной суммой
   for (int i = 0; i < array_length; ++i) {
     for (int j = 0; j < array_length; ++j) {
       if (i != j) {
@@ -45,7 +45,7 @@ void quadratic_sum(long long int array[], long long int array_length, long long 
   return;
 }
 
-void linear_sum(long long int array[], long long int array_length, long long int sum_to_find) { // Быстрый алгоритм для находения элементов с заданной суммой
+long long int linear_sum(long long int array[], long long int array_length, long long int sum_to_find) { // Быстрый алгоритм для находения элементов с заданной суммой
   long long int lborder = 0, rborder = array_length - 1;
   while (lborder < rborder) {
     if (array[lborder] + array[rborder] == sum_to_find) {
@@ -61,13 +61,13 @@ void linear_sum(long long int array[], long long int array_length, long long int
   return;
 }
 
-void strategy_A(long long int array[], long long int index_found) { // Стратегия A
+void strategy_A(long long int array[], long long int counters_array[], long long int index_found) { // Стратегия A
   if (index_found > 0) {
     std::swap(array[0], array[index_found]);
   }
 }
 
-void strategy_B(long long int array[], long long int index_found) { // Стратегия B
+void strategy_B(long long int array[], long long int counters_array[], long long int index_found) { // Стратегия B
   if (index_found > 0) {
     std::swap(array[index_found - 1], array[index_found]);
   }
@@ -85,9 +85,90 @@ void strategy_C(long long int array[], long long int counters_array[], long long
   }
 }
 
+int measure_average_time(long long int (*func)(long long int[], long long int, long long int), long long int array[], int number_of_elements) {
+  unsigned seed = 1001;
+  std::default_random_engine rng(seed);
+  std:uniform_int_distribution<long long int> dstr(1, number_of_elements);
+
+  auto begin = std::chrono::steady_clock::now(); // Начинаем отсчет времени
+  for (int counter = 0; counter < 100; ++counter) { // Запускаем счётчик
+    int number_to_find = dstr(rng); // Берём случайный элемент массива
+    func(array, number_of_elements, number_to_find); // Ищем его его нашей функцией
+  }
+  auto end = std::chrono::steady_clock::now(); // Останавливаем отсчет времени 
+  auto time_span = std::chrono::duration_cast < std::chrono::microseconds > (end - begin);
+  return time_span.count(); // Записываем в переменную полученное время
+}
+
+int measure_worst_posssible_time(long long int (*func)(long long int[], long long int, long long int), long long int array[], int number_of_elements) {
+  auto begin = std::chrono::steady_clock::now(); // Начинаем отсчет времени
+  for (int counter = 0; counter < 100; ++counter) { // Запускаем счётчик
+    int number_to_find = number_of_elements + 1; // Берём элемент не лежащий в массиве
+    func(array, number_of_elements, number_to_find); // Ищем его нашей функцией
+  }
+  auto end = std::chrono::steady_clock::now(); // Останавливаем отсчет времени 
+  auto time_span = std::chrono::duration_cast < std::chrono::microseconds > (end - begin);
+  return time_span.count(); // Записываем в переменную полученное время
+}
+
+int measure_uniform_time(void (*func)(long long int[], long long int[], long long int), int number_of_elements) {
+  
+  long long int *array = new long long int[number_of_elements]; // Инициализируем массив с заданным числом элементов
+  long long int *counters_array = new long long int[number_of_elements]; // Инициализируем массив счётчиков
+    for (long long int idx = 0; idx < number_of_elements; ++idx) { // Заполняем его
+    array[idx] = idx + 1;
+    counters_array[idx] = 0;
+  }
+  
+  unsigned seed = 1001;
+  std::default_random_engine rng(seed);
+  std::uniform_int_distribution<long long int> dstr(1, number_of_elements); // Задаем равномерное распределение в диапазоне от 1 до кол-ва элементов
+      
+  auto begin = std::chrono::steady_clock::now(); // Запускаем отсчёт времени
+  for (int counter = 0; counter < 1000; ++counter) { // Запускаем счетчик
+    int number_to_find = dstr(rng); // Выбираем одно из значений распределенных равномерно
+    func(array, counters_array, linear_search(array, number_of_elements, number_to_find)); // Применяем стратегию
+  }
+  auto end = std::chrono::steady_clock::now(); // Останавливаем отсчёт времени
+  auto time_span = std::chrono::duration_cast < std::chrono::microseconds > (end - begin);
+
+  delete[] array; // Очищаем память
+  delete[] counters_array;
+
+  return time_span.count(); // Возвращаем прошедшее время
+}
+
+int measure_binomial_time(void (*func)(long long int[], long long int[], long long int), int number_of_elements) {
+  
+  long long int *array = new long long int[number_of_elements]; // Инициализируем массив с заданным числом элементов
+  long long int *counters_array = new long long int[number_of_elements]; // Инициализируем массив счётчиков
+    for (long long int idx = 0; idx < number_of_elements; ++idx) { // Заполняем его
+    array[idx] = idx + 1;
+    counters_array[idx] = 0;
+  }
+  
+  unsigned seed = 1001;
+  std::default_random_engine rng(seed);
+  std::uniform_int_distribution<long long int> dstr(1, number_of_elements); // Задаем равномерное распределение в диапазоне от 1 до кол-ва элементов
+  std::binomial_distribution<long long int> bin_dstr(dstr(rng), dstr(rng)); //Задаем биномиальное распределение со случайнми параметрами
+    
+  auto begin = std::chrono::steady_clock::now(); // Запускаем отсчёт времени
+  for (int counter = 0; counter < 1000; ++counter) { // Запускаем счетчик
+    int number_to_find = bin_dstr(rng); // Выбираем одно из значений распределенных равномерно
+    func(array, counters_array, linear_search(array, number_of_elements, number_to_find)); // Применяем стратегию
+  }
+  auto end = std::chrono::steady_clock::now(); // Останавливаем отсчёт времени
+  auto time_span = std::chrono::duration_cast < std::chrono::microseconds > (end - begin);
+
+  delete[] array; // Очищаем память
+  delete[] counters_array;
+
+  return time_span.count(); // Возвращаем прошедшее время
+}
+
 int main() {
 
-  // Инициализирум переменные для записи в файл
+  // Инициализирум переменнsые для записи в файл
   std::ofstream output_search;
   std::ofstream output_sum_of_two;
   std::ofstream output_frequently_used_element;
@@ -99,55 +180,15 @@ int main() {
     output_search.open("search.csv"); // Открываем файл для первого задания 
     output_search << "number_of_elements," << "average_bin," << "average_lin," << "worst_possible_bin," << "worst_possible_lin" << '\n'; // Записываем в файл название столбцов
 
-    long long int *array = new long long int[1000000]; // Инициализирум массив
-    for (long long int idx = 0; idx < 90; ++idx) {
+    long long int *array = new long long int[100000]; // Инициализирум массив
+    for (long long int idx = 0; idx < 100000; ++idx) {
       array[idx] = idx + 1; // Заполняем массив натуральными числами
     }
 
     for (long long int number_of_elements = 100; number_of_elements <= 1000000; number_of_elements += 10) { // Пробегаемся по кол-ву элементов в массиве
-      
-      for (long long int idx = number_of_elements - 10; idx < number_of_elements; ++idx) {
-        array[idx] = idx + 1; //Пополняем массив
-      }
 
-      std:uniform_int_distribution<long long int> dstr(1, number_of_elements);
-
-      auto begin_average_bin = std::chrono::steady_clock::now(); // Начинаем отсчет времени
-      for (int counter = 0; counter < 100; ++counter) { // Запускаем счётчик
-        int number_to_find = dstr(rng); // Берём случайный элемент массива
-        binary_search(array, number_of_elements, number_to_find); // Ищем его бин. поиском
-      }
-      auto end_average_bin = std::chrono::steady_clock::now(); // Останавливаем отсчет времени 
-      auto time_span_average_bin = std::chrono::duration_cast < std::chrono::microseconds > (end_average_bin - begin_average_bin);
-      int average_bin = time_span_average_bin.count(); // Записываем в переменную прошедшее время
-
-      // Аналогично для поска перебором
-      auto begin_average_lin = std::chrono::steady_clock::now();
-      for (int counter = 0; counter < 100; ++counter) {
-        int number_to_find = dstr(rng);
-        linear_search(array, number_of_elements, number_to_find);
-      }
-      auto end_average_lin = std::chrono::steady_clock::now();
-      auto time_span_average_lin = std::chrono::duration_cast < std::chrono::microseconds > (end_average_lin - begin_average_lin);
-      int average_lin = time_span_average_lin.count();
-
-      auto begin_worst_possible_bin = std::chrono::steady_clock::now();
-      for (int counter = 0; counter < 100; ++counter) {
-        int number_to_find = number_of_elements + 1; // Берём элемент не лежащий в массиве
-        binary_search(array, number_of_elements, number_to_find);
-      }
-      auto end_worst_possible_bin = std::chrono::steady_clock::now();
-      auto time_span_worst_possible_bin = std::chrono::duration_cast < std::chrono::microseconds > (end_worst_possible_bin - begin_worst_possible_bin);
-      int worst_possible_bin = time_span_worst_possible_bin.count();
-
-      auto begin_worst_possible_lin = std::chrono::steady_clock::now();
-      for (int counter = 0; counter < 100; ++counter) {
-        int number_to_find = number_of_elements + 1;
-        linear_search(array, number_of_elements, number_to_find);
-      }
-      auto end_worst_possible_lin = std::chrono::steady_clock::now();
-      auto time_span_worst_possible_lin = std::chrono::duration_cast < std::chrono::microseconds > (end_worst_possible_lin - begin_worst_possible_lin);
-      int worst_possible_lin = time_span_worst_possible_lin.count();    
+      int average_bin = measure_average_time(binary_search, array, number_of_elements), average_lin = measure_average_time(linear_search, array, number_of_elements); // Записываем в переменную полученное время
+      int worst_possible_bin = measure_worst_posssible_time(binary_search, array, number_of_elements), worst_possible_lin = measure_worst_posssible_time(linear_search, array, number_of_elements);
 
       output_search << number_of_elements << ',' << average_bin << ',' << average_lin << ',' << worst_possible_bin << ',' << worst_possible_lin << '\n'; // Записываем в строку файла кол-во элементов в массиве и полученное время
     }
@@ -163,36 +204,13 @@ int main() {
     output_sum_of_two << "number_of_elements," << "quad_sum," << "lin_sum" << "\n"; // Записываем в него названия столбцов
 
     long long int *array = new long long int[10000];
-    for (long long int idx = 0; idx < 90; ++idx) {
+    for (long long int idx = 0; idx < 10000; ++idx) {
       array[idx] = idx + 1; // Заполняем массив натуральными числами
     }
 
     for (long long int number_of_elements = 100; number_of_elements <= 10000; number_of_elements += 10) { // Пробегаемся по кол-ву элементов в массиве
       
-      for (long long int idx = number_of_elements - 10; idx < number_of_elements; ++idx) {
-        array[idx]= idx + 1; // Пополняем массив
-      }
-
-      std::uniform_int_distribution<long long int> dstr(1, number_of_elements * 2 -1);
-      
-      auto begin_quad_sum = std::chrono::steady_clock::now(); // Запускаем отсчёт времени
-      for (int counter = 0; counter < 100; ++counter) { // Запускаем счетчик
-        int sum_to_find = dstr(rng); // Берём случайную возможную сумму 
-        quadratic_sum(array, number_of_elements, sum_to_find); // Ищем элементы с заданной суммой быстрым алгоритмом
-      }
-      auto end_quad_sum = std::chrono::steady_clock::now(); // Останавливаем отсчёт времени
-      auto time_span_quad_sum = std::chrono::duration_cast < std::chrono::microseconds > (end_quad_sum - begin_quad_sum);
-      int quad_sum = time_span_quad_sum.count(); // Записываем в переменную прошедшее время
-      
-      // Для прямого перебора аналогично
-      auto begin_lin_sum = std::chrono::steady_clock::now();
-      for (int counter = 0; counter < 100; ++counter) {
-        int sum_to_find = dstr(rng);
-        linear_sum(array, number_of_elements, sum_to_find);
-      }
-      auto end_lin_sum = std::chrono::steady_clock::now();
-      auto time_span_lin_sum = std::chrono::duration_cast < std::chrono::microseconds > (end_lin_sum - begin_lin_sum);
-      int lin_sum = time_span_lin_sum.count();
+      int quad_sum =  measure_average_time(quadratic_sum, array, number_of_elements), lin_sum = measure_average_time(linear_sum, array, number_of_elements);// Записываем в переменные прошедшее время
       
       output_sum_of_two << number_of_elements << ',' << quad_sum << ',' << lin_sum << "\n"; // Записываем в строку файла кол-во элементов в массиве и полученное время
     }
@@ -207,118 +225,10 @@ int main() {
     output_frequently_used_element.open("frequently_used_element.csv"); // Открываем файл для третьего задания 
     output_frequently_used_element << "number_of_elements," << "A_uniform," << "B_uniform," << "C_uniform," << "A_binomial," << "B_binomial," << "C_binomial" << '\n'; // Записываем в него название столбцов
 
-    for (long long int number_of_elements = 100; number_of_elements <= 1000000; number_of_elements += 10) { // Пробегаемся по кол-ву элементов в массиве
-      long long int *array = new long long int[number_of_elements]; // Инициализируем массив с заданным числом элементов
-      for (long long int idx = 0; idx < number_of_elements; ++idx) {
-        array[idx] = idx + 1; // Заполняем его натуральными числами
-      }
+    for (long long int number_of_elements = 100; number_of_elements <= 100000; number_of_elements += 10) { // Пробегаемся по кол-ву элементов в массиве
 
-      std::uniform_int_distribution<long long int> dstr(1, number_of_elements); // Задаем равномерное распределение в диапазоне от 1 до кол-ва элементов
-      
-      auto begin_A_uniform = std::chrono::steady_clock::now(); // Запускаем отсчёт времени
-      for (int counter = 0; counter < 1000; ++counter) { // Запускаем счетчик
-        int number_to_find = dstr(rng); // Выбираем одно из значений распределенных равномерно
-        strategy_A(array, linear_search(array, number_of_elements, number_to_find)); // Применяем стратегию A
-      }
-      auto end_A_uniform = std::chrono::steady_clock::now(); // Останавливаем отсчёт времени
-      auto time_span_A_uniform = std::chrono::duration_cast < std::chrono::microseconds > (end_A_uniform - begin_A_uniform);
-      int A_uniform = time_span_A_uniform.count(); // Записыываем в переменную прошедшее время
-
-      delete[] array; // Очищаем память
-
-      array = new long long int[number_of_elements]; 
-
-      for (long long int idx = 0; idx < number_of_elements; ++idx) {
-        array[idx] = idx + 1; // Перезаполняем массив натуральными числами
-      }
-      
-      // Далее аналогично
-      auto begin_B_uniform = std::chrono::steady_clock::now();
-      for (int counter = 0; counter < 1000; ++counter) {
-        int number_to_find = dstr(rng);
-        strategy_B(array, linear_search(array, number_of_elements, number_to_find));
-      }
-      auto end_B_uniform = std::chrono::steady_clock::now();
-      auto time_span_B_uniform = std::chrono::duration_cast < std::chrono::microseconds > (end_B_uniform - begin_B_uniform);
-      int B_uniform = time_span_B_uniform.count();
-
-      delete[] array;
-
-      array = new long long int[number_of_elements];
-      long long int *counters_array = new long long int[number_of_elements]; // Инициализируем массив счётчиков
-
-      for (long long int idx = 0; idx < number_of_elements; ++idx) {
-        array[idx] = idx + 1;
-        counters_array[idx] = 0;
-      }
-      
-      auto begin_C_uniform = std::chrono::steady_clock::now();
-      for (int counter = 0; counter < 1000; ++counter) {
-        int number_to_find = dstr(rng);
-        strategy_C(array, counters_array, linear_search(array, number_of_elements, number_to_find));
-      }
-      auto end_C_uniform = std::chrono::steady_clock::now();
-      auto time_span_C_uniform = std::chrono::duration_cast < std::chrono::microseconds > (end_C_uniform - begin_C_uniform);
-      int C_uniform = time_span_C_uniform.count();
-
-      delete[] array;
-      delete[] counters_array;
-
-      array = new long long int[number_of_elements];
-      for (long long int idx = 0; idx < number_of_elements; ++idx) {
-        array[idx] = idx + 1;
-      }
-
-      std::binomial_distribution<long long int> bin_dstr(dstr(rng), dstr(rng)); //Задаем биномиальное распределение со случайнми параметрами
-      
-      //Далее аналогично
-      auto begin_A_binomial = std::chrono::steady_clock::now();
-      for (int counter = 0; counter < 1000; ++counter) {
-        int number_to_find = bin_dstr(rng); // Выбираем одно из значений распределенных биномиально
-        strategy_A(array, linear_search(array, number_of_elements, number_to_find));
-      }
-      auto end_A_binomial = std::chrono::steady_clock::now();
-      auto time_span_A_binomial = std::chrono::duration_cast < std::chrono::microseconds > (end_A_binomial - begin_A_binomial);
-      int A_binomial = time_span_A_binomial.count();
-
-      delete[] array;
-
-      array = new long long int[number_of_elements];
-
-      for (long long int idx = 0; idx < number_of_elements; ++idx) {
-        array[idx] = idx + 1;
-      }
-      
-      auto begin_B_binomial = std::chrono::steady_clock::now();
-      for (int counter = 0; counter < 1000; ++counter) {
-        int number_to_find = bin_dstr(rng);
-        strategy_B(array, linear_search(array, number_of_elements, number_to_find));
-      }
-      auto end_B_binomial = std::chrono::steady_clock::now();
-      auto time_span_B_binomial = std::chrono::duration_cast < std::chrono::microseconds > (end_B_binomial - begin_B_binomial);
-      int B_binomial = time_span_B_binomial.count();
-
-      delete[] array;
-
-      array = new long long int[number_of_elements];
-      counters_array = new long long int[number_of_elements];
-
-      for (long long int idx = 0; idx < number_of_elements; ++idx) {
-        array[idx] = idx + 1;
-        counters_array[idx] = 0;
-      }
-      
-      auto begin_C_binomial = std::chrono::steady_clock::now();
-      for (int counter = 0; counter < 1000; ++counter) {
-        int number_to_find = bin_dstr(rng);
-        strategy_C(array, counters_array, linear_search(array, number_of_elements, number_to_find));
-      }
-      auto end_C_binomial = std::chrono::steady_clock::now();
-      auto time_span_C_binomial = std::chrono::duration_cast < std::chrono::microseconds > (end_C_binomial - begin_C_binomial);
-      int C_binomial = time_span_C_binomial.count();
-
-      delete[] array;
-      delete[] counters_array;
+      int A_uniform = measure_uniform_time(strategy_A, number_of_elements), B_uniform = measure_uniform_time(strategy_B, number_of_elements), C_uniform = measure_uniform_time(strategy_C, number_of_elements); // Записываем в переменную полученное время
+      int A_binomial = measure_binomial_time(strategy_A, number_of_elements), B_binomial = measure_binomial_time(strategy_B, number_of_elements), C_binomial = measure_binomial_time(strategy_C, number_of_elements);
 
       output_frequently_used_element << number_of_elements << ',' << A_uniform << ',' << B_uniform << ',' << C_uniform << ',' << A_binomial << ',' << B_binomial << ',' << C_binomial << '\n'; // Записываем в строку файла кол-во элементов в массиве и полученное время
     }
