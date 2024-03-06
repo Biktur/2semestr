@@ -36,7 +36,7 @@ void quadratic_sum(long long int array[], long long int array_length, long long 
   for (int i = 0; i < array_length; ++i) {
     for (int j = 0; j < array_length; ++j) {
       if (i != j) {
-        if (array[i] +array[j] == sum_to_find) {
+        if (array[i] + array[j] == sum_to_find) {
           return;
         }
       }
