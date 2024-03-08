@@ -1,0 +1,4 @@
+*.exe
+.vscode
+*.synctex.gz
+*.txt
